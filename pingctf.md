@@ -79,14 +79,14 @@ As suggested by the pcg_image_header struct, the header is constructed by the ma
 Not much there is to say about the checksum, the check and calculation are located at `sub@1217`, the checksum excludes the magic and checksum fields.
 Here's a python code which calculates the checksum:
 ```Python
-def calc_checksum(image: bytearray):
-    checksum = PCG_MAGIC
-    counter = 0
-    for byte in image[8:]:
-        current_byte_to_xor_with = byte << (8 * (counter % 4))
-        checksum = checksum ^ current_byte_to_xor_with
-        counter += 1
-    return checksum
+    def calc_checksum(image: bytearray):
+        checksum = PCG_MAGIC
+        counter = 0
+        for byte in image[8:]:
+            current_byte_to_xor_with = byte << (8 * (counter % 4))
+            checksum = checksum ^ current_byte_to_xor_with
+            counter += 1
+        return checksum
 ```
 
 # Leak implementation 
