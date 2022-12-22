@@ -1,4 +1,8 @@
 
+layout: page
+title: "pingctf-pcg"
+permalink: /ctf/pingctf/pcg
+
 Me and my friends decided we should give the ctf a try, in the pwn section, we will look at pcg,
 
 Even though we didn't manage to solve it in time, I managed to solve it post-ctf :]
