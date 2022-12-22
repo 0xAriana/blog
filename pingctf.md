@@ -78,7 +78,7 @@ As suggested by the pcg_image_header struct, the header is constructed by the ma
 ## Checksum calculation
 Not much there is to say about the checksum, the check and calculation are located at `sub@1217`, the checksum excludes the magic and checksum fields.
 Here's a python code which calculates the checksum:
-```Python
+```
     def calc_checksum(image: bytearray):
         checksum = PCG_MAGIC
         counter = 0
@@ -92,7 +92,7 @@ Here's a python code which calculates the checksum:
 # Leak implementation 
 The actual data bytes are the word-offset on the stack, and the number of identical bytes in the data is the number of times we increased the value.
 Following this principle, we generate the following code, I'll explain the function right after:
-```Python
+```
 def get_data_to_leak_pcg_bin_address():
     data = bytearray()
 
@@ -143,7 +143,7 @@ Remembering that each byte in the image data can only increase a certain offset 
 "Luckily" (haha) aslr is turned on, so we might get lucky sometime (sploiler: we do, depending on the one_gadget we chose).
 
 Heres a script that builds the image data that does what we described above:
-``` Python
+```
 def get_data_to_change_ret_addr_to_execve(show_statistics_ret_addr, execve_bin_sh_addr):
     data = bytearray()
 
@@ -173,7 +173,7 @@ Running the final exploit we get:
 
 # Final exploit
 Here's the badly written complete exploit:
-```Python
+```
 import struct
 
 import pwn
