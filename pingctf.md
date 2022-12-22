@@ -1,9 +1,9 @@
-
+---
 layout: page
 title: "pingctf-pcg"
 permalink: /ctf/pingctf/pcg
 
-----------------------------
+---
 
 Me and my friends decided we should give the ctf a try, in the pwn section, we will look at pcg,
 
