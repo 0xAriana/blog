@@ -5,10 +5,6 @@ nav_order: 1
 permalink: /ctf/pingctf/pcg
 ---
 
-Me and my friends decided we should give the ctf a try, in the pwn section, we will look at pcg,
-
-Even though we didn't manage to solve it in time, I managed to solve it post-ctf :]
-
 # General info
 The purpose of the binary is to act as a new terminal based image (or basic encoding of a image - at least) encoding scheme.
 
