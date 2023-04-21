@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "0ctf2017-babyheap"
-nav_order: 2
+nav_order: 1
 permalink: /ctf/0ctf2017/babyheap
 ---
 # Background
