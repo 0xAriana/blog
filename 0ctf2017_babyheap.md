@@ -4,6 +4,7 @@ title: "0ctf2017-babyheap"
 nav_order: 1
 permalink: /ctf/0ctf2017/babyheap
 ---
+
 # Background
 There are two x64 elfs in this challenge:
 1. 0ctfbabyheap!
