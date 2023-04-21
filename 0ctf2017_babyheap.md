@@ -129,7 +129,7 @@ The rop will look like this on the stack:
 
 # Running the exploit
 Putting it all together, we pop a shell:
-``` Python LOG
+``` Python
   io.recvuntil("Command:")
 [DEBUG] Received 0x53 bytes:
     b'===== Baby Heap in 2017 =====\n'
