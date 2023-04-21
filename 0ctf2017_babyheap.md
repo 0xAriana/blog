@@ -5,6 +5,7 @@ nav_order: 1
 permalink: /ctf/0ctf2017/babyheap
 ---
 
+
 # Background
 There are two x64 elfs in this challenge:
 1. 0ctfbabyheap
@@ -89,6 +90,7 @@ So the idea is to:
 Now we can overwrite up to 0x68 bytes using the Fill (2) option, which can easly cover `__malloc_hook`.
 Now that we can write to the function pointer, we need a single snippet of code we wish to run.
 Usually this is where one_gadget is used, however this time, it's not so easy, let's take a look:
+
 ![20230420220942](https://user-images.githubusercontent.com/121199478/233637598-195f5ff5-2143-4a37-8b83-cbea9f0b2e15.png)
 
 We have some constrains, sadly, none of those constrains is satisfied as is, meaning, we have to handle the constrains before jumping to the one_gadget address,
@@ -116,6 +118,7 @@ and then we can write our rop payload, and once the read function will return, t
 
 ### Rop payload
 We did all of this just so that we can run a rop instead of a single one_gadget address using `__malloc_hook`, this is because, we will use 2 gadgets in our rop, the first one is:
+
 ![20230420225510](https://user-images.githubusercontent.com/121199478/233637708-c423848e-9938-4659-8a0b-ed71f04314d1.png)
 
 Which will be used to satisfy the first one_gadget - gadget constraint.
