@@ -7,23 +7,26 @@ permalink: /ctf/0ctf2017/babyheap
 
 # Background
 There are two x64 elfs in this challenge:
-1. [0ctfbabyheap](Resources/0ctfbabyheap)
-2. [libc-2.23.so](Resources/libc.so.6)
+1. 0ctfbabyheap
+2. libc-2.23.so
 
 This is a pretty old heap challenge from 0ctf2017, it has a classic allocator-like mechanism.
-![preview](Resources/Pasted%20image%2020230420004312.png)
+![20230420004312](https://user-images.githubusercontent.com/121199478/233636940-50972c02-84ae-4c6c-b3aa-e301ba930f52.png)
+
 
 # Binary analysis
 ## Checksec 
-![checksec](Resources/Pasted%20image%2020230420004516.png)
+![20230420004516](https://user-images.githubusercontent.com/121199478/233637294-d3978d27-570e-41a0-83a9-7975ccc2e7fd.png)
 
 ## General background and quirks
 In this challenge, the challenge is initialized with mapping an anonymous page at a random address, this page is used for book-keeping the allocated chunks:
-![General background](Resources/Pasted%20image%2020230420004910.png)
+![20230420004910](https://user-images.githubusercontent.com/121199478/233637332-e26f94f3-ca88-406b-920d-cbb04ef3ebef.png)
+
 
 ## Vulnerability
 When using the fill option (2),  the size which is written to the chunk, is not checked against the allocated size, but instead is user-controlled, allowing OOB arbitary write.
-![Vuln](Resources/Pasted%20image%2020230420190805.png)
+![20230420190805](https://user-images.githubusercontent.com/121199478/233637349-ace6ea92-e97f-4b39-b7b7-6f0d9f43082c.png)
+
 
 # Exploit
 Our arbitary OOB can be used for different things, one idea is using fast-bin attack to gain an arbitary chunk (with some limitations).
@@ -57,17 +60,20 @@ If we corrupt the `fd` pointer of a fastbin free chunk, if we allocate a chunk, 
 
 ### Mitigation
 In fastbin chunks, when we take a chunk out of the free-list, it checks if the size of the chunk fits the bin size, so we can't actually corrupt the `fd` pointer to an arbitary address, but to an address that in the `size` offset has the size matching the size of the bin it's getting taken out of.
-![Mitigation](Resources/Pasted%20image%2020230420215344.png)
+![20230420215344](https://user-images.githubusercontent.com/121199478/233637408-7282e708-36bc-4843-8147-2fcd830c0e20.png)
+
 
 ## Using Fastbin attack to overwrite `malloc_hook`
 Transforming arbitary write to code execution can be done via overwriting function pointers,
 A good candidate is `malloc_hook` which is a hooking function for `libc_malloc`, there are also other hooking candidates such as `free_hook`, `__realloc_hook` and more.
 But how to overcome the Mitigations?
 Looking around `malloc_hook` address we can see the following:
-![](Resources/Pasted%20image%2020230420212008.png)
+![20230420212008](https://user-images.githubusercontent.com/121199478/233637520-3f2a82f5-6314-4537-9aee-fe7ee4292236.png)
+
 And we can see that at `_IO_wide_data_0+304` resides some address in libc, with the MSByte of 0x7f.
 If we do some memory alignment tricks, remembering little endian properties, if we look at the qword at address `_IO_wide_data_0+304+5`:
-![](Resources/Pasted%20image%2020230420212354.png)
+![20230420212354](https://user-images.githubusercontent.com/121199478/233637539-7cbcd5f2-2ee8-4e77-bbb8-a5f7c5607123.png)
+
 If we make sure this is at the `size` offset of a fake fastbin free chunk, we can get an allocation to `_IO_wide_data_0+304+5+0x8` and we can overwrite `__malloc_hook`.
 	0x7f is equivilant to 0x70 due to the way the `chunksize` macro works:	![](Resources/Pasted%20image%2020230420215642.png)
 	As we can see the size is masked with `~SIZE_BITS`, which effectivly zeros out 4 lsb.
@@ -76,39 +82,47 @@ So the idea is to:
 1. Allocate a target chunk - chunk #4.
 2. Allocate a chunk of size 0x70 (such that the fake chunk size will be considered in the freebin size) - chunk #5
 3. Free chunk #5 into the fastbin freelist.
-4. Corrupt the freelist using OOB on chunk #4, such that the pointer to the next free fastbin chunk will point to `_IO_wide_data_0+304+5-8`, `_IO_wide_data_0` can be calculated via the [[#libc leak]].
+4. Corrupt the freelist using OOB on chunk #4, such that the pointer to the next free fastbin chunk will point to `_IO_wide_data_0+304+5-8`, `_IO_wide_data_0` can be calculated via the #libc leak.
 5. Allocate twice a chunk of size 0x70, the first allocation will get chunk #5 back, the second allocation will get us a chunk located at `_IO_wide_data_0+304+5-8`!
 
 ## Using `__malloc_hook` to get a chunk on the stack
 Now we can overwrite up to 0x68 bytes using the Fill (2) option, which can easly cover `__malloc_hook`.
 Now that we can write to the function pointer, we need a single snippet of code we wish to run.
 Usually this is where one_gadget is used, however this time, it's not so easy, let's take a look:
-![](Resources/Pasted%20image%2020230420220942.png)
+![20230420220942](https://user-images.githubusercontent.com/121199478/233637598-195f5ff5-2143-4a37-8b83-cbea9f0b2e15.png)
+
 We have some constrains, sadly, none of those constrains is satisfied as is, meaning, we have to handle the constrains before jumping to the one_gadget address,
 
 looking at the context `__malloc_hook` is being called to, we have a look during runtime:
-![](Resources/Pasted%20image%2020230420222352.png)
+![20230420222352](https://user-images.githubusercontent.com/121199478/233637617-fe065163-cca3-4e5f-84ec-14315db6f989.png)
+
 We make an important observation: `RCX` points to the somewhere on the stack:
-![](Resources/Pasted%20image%2020230420222626.png)
+![20230420222626](https://user-images.githubusercontent.com/121199478/233637633-cd07e354-89be-4785-8883-3983e3b07d96.png)
+
 So, if we can get a chunk pointing to `RCX`, we can write into the stack.
 Since `__libc_malloc` returns the return value of `__malloc_hook`, if we make the return value of `__malloc_hook` point to `RCX`, we get a chunk pointing to the stack.
 This can be done by making `__malloc_hook` point to the following gadget (found using ropper):
-![[Pasted image 20230420224319.png]]
+
+![20230420224319](https://user-images.githubusercontent.com/121199478/233637672-774a0de4-648b-4ff3-9b49-2f104e5aceba.png)
+
 And the next allocation will yield a chunk on the stack.
 
 ## Running ROP using the stack chunk
 In order to know at what offset to write the rop, we turn again to dynamic debugging, we set a breakpoint to the `read` function which reads into the chunk from stdin, and look at the context:
-![](Resources/Pasted%20image%2020230420225203.png)
+![20230420225203](https://user-images.githubusercontent.com/121199478/233637696-9c86eb3d-537a-4466-834a-40a37d4d6058.png)
+
 The address which we write into is in `RSI`, and as we can see, the current function frame is at `0x7ffdd4dca2b0` (as pointed by rbp), hence we need to overwrite 3 qwords until the return address.
 and then we can write our rop payload, and once the read function will return, the rop will be executed.
 
 ### Rop payload
 We did all of this just so that we can run a rop instead of a single one_gadget address using `__malloc_hook`, this is because, we will use 2 gadgets in our rop, the first one is:
-![](Resources/Pasted%20image%2020230420225510.png)
+![20230420225510](https://user-images.githubusercontent.com/121199478/233637708-c423848e-9938-4659-8a0b-ed71f04314d1.png)
+
 Which will be used to satisfy the first one_gadget - gadget constraint.
 And the second gadget will be the one_gadget address.
 The rop will look like this on the stack:
-![](Resources/Pasted%20image%2020230420225755.png)
+![20230420225755](https://user-images.githubusercontent.com/121199478/233637721-16ccba21-d3c6-4679-ab9c-164b80f20489.png)
+
 
 # Running the exploit
 Putting it all together, we pop a shell:
