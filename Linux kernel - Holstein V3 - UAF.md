@@ -19,6 +19,7 @@ We can see everything is enabled:
 * PTI
 * KASLR
 # Source code analysis
+
 ```c
 
 #include <linux/module.h>
