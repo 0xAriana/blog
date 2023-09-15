@@ -20,6 +20,7 @@ We can see everything is enabled:
 * KASLR
 # Source code analysis
 ```C
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/cdev.h>
