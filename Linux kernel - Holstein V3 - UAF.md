@@ -418,7 +418,7 @@ This part is pretty standard:
 3. Call [swapgs_restore_regs_and_return_to_usermode](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/entry/entry_64.S) with the return user space context ready on the stack: RIP, CS, EFLAGS, RSP, SS.
 
 * At the beginning of main, I've set the context I want to return to in the function `setup_iretq_context`:
-* 
+
 ```c
 
 unsigned long cs;
