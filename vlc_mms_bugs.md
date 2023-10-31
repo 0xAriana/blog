@@ -20,6 +20,7 @@ According to the logic in the VLC code, the packets are in the following formats
 # Issues
 ## GetPacket  - Heap overflow
 Packets are received in GetPacket:
+
 ```C
 static int GetPacket( stream_t * p_access, chunk_t *p_ck )
 {
@@ -117,11 +118,13 @@ We can see that there are 3 sequence of data receival:
 3. Reading the data.
 
 The issue is that when they calculate the remaining size of the packet to read:
+
 ```C
 p_ck->i_data = p_ck->i_size2 - 8;
 ```
 Instead of decreasing 12 (which is the size of the already read headers), they only decrease 8.
 later on, `i_data` bytes is going to be read from the socket into the buffer `p_ck->p_data` at:
+
 ```C
     if( (p_ck->i_data > 0) &&
         (vlc_tls_Read( p_sys->stream, &p_sys->buffer[12], p_ck->i_data,
@@ -136,6 +139,7 @@ And as we can see, it's being read into offset 12 of the buffer.
 The size being read is capped to `i_size2 = 0xffff - 8 = 0xfff7` , so if the buffer size is less then
 `0xfff7 + 0xc = 0x10003` we'll get an overflow.
 looking at the struct which contains the buffer we can see the size:
+
 ```C
 #define BUFFER_SIZE 65536
 typedef struct
@@ -176,11 +180,13 @@ As we can see buffer is filled by a lot of A's (0x41), and that the next struct 
 
 ## GetPacket - integer underflow
 When calculating the data size, we already saw the following line:
+
 ```C
 p_ck->i_data      = p_ck->i_size2 - 8;
 ```
 Since we control `i_size2` we think this might cause an underflow.
 Now, looking at the definitions of `i_data` and `i_size2` in the `chunk_t` struct:
+
 ```C
 typedef struct
 {
@@ -215,6 +221,7 @@ this is confirmed by the dissasembly (using IDA) of the relevant function:
 And we can see that the uint16 value is first copied (zero-extended) into r11d, and only then we subtract 8 from r11d. 
 
 This is not very useful as of the moment, since the following sanity checks validates that `i_data` > 0:
+
 ```C
     if( (p_ck->i_data > 0) &&
         (vlc_tls_Read( p_sys->stream, &p_sys->buffer[12], p_ck->i_data,
@@ -225,6 +232,7 @@ This is not very useful as of the moment, since the following sanity checks vali
     }
 ```
 However, the value of `i_data` is being written to `p_sys->i_packet_length`:
+
 ```C
     p_sys->i_packet_length = p_ck->i_data;
 ```
