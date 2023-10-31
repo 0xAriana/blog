@@ -6,7 +6,9 @@ permalink: /real_bugs/vlc/mms
 ---
 # Background
 In VLC, IO (network stream protocols and more) is done under modules/access.
+
 There is an old protocol called MMS (Microsoft media server) - [MMS Wiki](https://en.wikipedia.org/wiki/Microsoft_Media_Server)
+
 There are two implementations used by VLC - MMST (MMS over TCP) and MMSH (MMS over HTTP).
 
 ## Packets
@@ -123,6 +125,7 @@ The issue is that when they calculate the remaining size of the packet to read:
 p_ck->i_data = p_ck->i_size2 - 8;
 ```
 Instead of decreasing 12 (which is the size of the already read headers), they only decrease 8.
+
 later on, `i_data` bytes is going to be read from the socket into the buffer `p_ck->p_data` at:
 
 ```c
@@ -136,9 +139,9 @@ later on, `i_data` bytes is going to be read from the socket into the buffer `p_
 ```
 And as we can see, it's being read into offset 12 of the buffer.
 
-The size being read is capped to `i_size2 = 0xffff - 8 = 0xfff7` , so if the buffer size is less then
-`0xfff7 + 0xc = 0x10003` we'll get an overflow.
-looking at the struct which contains the buffer we can see the size:
+The size being read is capped to `i_size2 = 0xffff - 8 = 0xfff7`, so if the buffer size is less then `0xfff7 + 0xc = 0x10003` we'll get an overflow.
+
+Looking at the struct which contains the buffer we can see the size:
 
 ```c
 #define BUFFER_SIZE 65536
@@ -170,9 +173,12 @@ Hence we get an heap overflow.
 ### Showcase
 I compiled VLC myself using the following [guidelines](https://wiki.videolan.org/UnixCompile/) to get debug symbols.
 
-Implemented a basic MMSH server which get's to the first time `GetPacket` is being called (`Describe->GetHeader->GetPacket`), 
+Implemented a basic MMSH server which get's to the first time `GetPacket` is being called (`Describe->GetHeader->GetPacket`),
+
 passes the checks and send 0xffff bytes of 'A' (0x41) as the packet data,
-set a break point after reading the data (read 4), and we can get the following using gdb:
+by setting a break point after reading the data (read 4), 
+
+we get the following (using gdb):
 
 ![Pasted image 20230829030323](https://github.com/0xAriana/blog/assets/121199478/6bf59e52-e9cf-4e6b-8c98-8c0ba44d45ef)
 
