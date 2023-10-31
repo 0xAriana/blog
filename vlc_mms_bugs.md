@@ -219,6 +219,7 @@ However, when we decrement 8, the order of the subtraction is important, since, 
 2. Substract 8.
 We might get an int underflow.
 this is confirmed by the dissasembly (using IDA) of the relevant function:
+
 ![Pasted image 20230907102509](https://github.com/0xAriana/blog/assets/121199478/6aa86bca-2b3f-47a9-a410-3f1e3f99a8a5)
 
 
